@@ -90,11 +90,17 @@ const saleToken = async (sunPadLaunchpadContract, tokenAddress, balanceToken) =>
                 }
             }else if(choice == 2){
                 const tokenAddress = rl.question('Token Address: ');
-                const tokenContract = await tronWeb.contract(tokenContractABI, tokenAddress);
-                const balanceToken = await getBalance(tokenContract, address);
-                console.log(`Balance Token: ${Number(balanceToken)/10**16}`);
+                const isBonding = await checkBonding(routerSunPumpContract, tokenAddress);
                 
-                await saleToken(sunPadLaunchpadContract, tokenAddress, balanceToken);
+                if(!isBonding){
+                    const tokenContract = await tronWeb.contract(tokenContractABI, tokenAddress);
+                    const balanceToken = await getBalance(tokenContract, address);
+                    console.log(`Balance Token: ${Number(balanceToken)/10**16}`);
+                    
+                    await saleToken(sunPadLaunchpadContract, tokenAddress, balanceToken);
+                }else{
+
+                }
             }
         } catch (error) {
             console.error(error);
