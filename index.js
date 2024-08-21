@@ -66,20 +66,18 @@ const saleToken = async (sunPadLaunchpadContract, tokenAddress, balanceToken) =>
 
         const implementationABI  = JSON.parse(fs.readFileSync('abiSunpad.json', 'utf8'));
         const tokenContractABI  = JSON.parse(fs.readFileSync('abitoken.json', 'utf8'));
-        const sunPumpRouterCa = 'TZFs5ch1R1C4mmjwrrmZqeqbUgGpxY1yWB'
         const sunPadLaunchpadCa = 'TTfvyrAz86hbZk5iDpKD78pqLGgi8C7AAw'
         
-        let routerSunPumpContract = await tronWeb.contract().at(sunPumpRouterCa);
         let sunPadLaunchpadContract = await tronWeb.contract(implementationABI, sunPadLaunchpadCa);
         
-        console.log(`Address: ${address}\nBalance: ${Number(balanceInSun)/1000000} TRX`);
+        console.log(`Address: ${address}\nBalance: ${Number(balanceInSun)/10**6} TRX`);
         console.log('1. Swap TRX to Token\n2. Sale Token to TRX');
         const choice = rl.question('Choice: ');
 
         if(choice == 1){
             const tokenAddress = rl.question('Token Address: ');
             const trxAmount = Number(rl.question('TRX Amount: '));
-            await buyTokenInSunPump(sunPadLaunchpadContract, tokenAddress, (trxAmount*1000000));
+            await buyTokenInSunPump(sunPadLaunchpadContract, tokenAddress, (trxAmount*10**6));
         }else if(choice == 2){
             const tokenAddress = rl.question('Token Address: ');
             const tokenContract = await tronWeb.contract(tokenContractABI, tokenAddress);
@@ -88,22 +86,6 @@ const saleToken = async (sunPadLaunchpadContract, tokenAddress, balanceToken) =>
             
             await saleToken(sunPadLaunchpadContract, tokenAddress, balanceToken);
         }
-        // const tokenAddress = 'TQgo7fp75XifXsyjPCxR1RALKQUaKweJy6';
-        // let tokenContract = await tronWeb.contract(tokenContractABI, tokenAddress);
-        // const trxAmount = 100000000;
-
-        // const isBonding = await checkBonding(routerSunPumpContract,'TQgo7fp75XifXsyjPCxR1RALKQUaKweJy6');
-        
-
-
-
-
-
-        // if(!isBonding){
-
-        // }else{
-
-        // }
     } catch (error) {
         console.error(error);
     }
