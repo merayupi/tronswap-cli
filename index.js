@@ -144,8 +144,13 @@ const aproveToken = async (tokenContract, contracAddress,address) => {
                 const isBonding = await checkBonding(routerSunPumpContract, tokenAddress);
                 if(!isBonding){
                     const tokenContract = await tronWeb.contract(tokenContractABI, tokenAddress);
-                    await buyTokenInSunPump(sunPadLaunchpadContract, tokenAddress, tronWeb.toSun(trxAmount));
-                    await aproveToken(tokenContract, sunPadLaunchpadCa, address);
+                    const confirmation = rl.question('Are you sure you want to buy this token? (Y/N): ');
+                    if (confirmation.toLowerCase() === 'y') {
+                        await buyTokenInSunPump(sunPadLaunchpadContract, tokenAddress, tronWeb.toSun(trxAmount));
+                        await aproveToken(tokenContract, sunPadLaunchpadCa, address);
+                    } else {
+                        console.log('Buy operation cancelled.');
+                    }
                 }else{
                     const addressesBase58 = [
                         "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR", //WTRX
@@ -157,9 +162,14 @@ const aproveToken = async (tokenContract, contracAddress,address) => {
                         return '0x' + hexAddress.slice(2); 
                     });
 
-                    await buyTokeninSundotIO(routerSunPumpContract, tronWeb.toSun(trxAmount), path, address);
-                    const tokenContract = await tronWeb.contract(tokenContractABI, tokenAddress);
-                    await aproveToken(tokenContract, sunPumpRouterCa, address);
+                    const confirmation = rl.question('Are you sure you want to buy this token? (Y/N): ');
+                    if (confirmation.toLowerCase() === 'y') {
+                        await buyTokeninSundotIO(routerSunPumpContract, tronWeb.toSun(trxAmount), path, address);
+                        const tokenContract = await tronWeb.contract(tokenContractABI, tokenAddress);
+                        await aproveToken(tokenContract, sunPumpRouterCa, address);
+                    } else {
+                        console.log('Buy operation cancelled.');
+                    }
                 }
             }else if(choice == 2){
                 const tokenAddress = rl.question('Token Address: ');
@@ -170,7 +180,12 @@ const aproveToken = async (tokenContract, contracAddress,address) => {
                     const balanceToken = await getBalance(tokenContract, address);
                     console.log(`Balance Token: ${Number(balanceToken)/10**16}`);
                     
-                    await SellTOkenSunPump(sunPadLaunchpadContract, tokenAddress, balanceToken);
+                    const confirmation = rl.question('Are you sure you want to sell all your tokens? (Y/N): ');
+                    if (confirmation.toLowerCase() === 'y') {
+                        await SellTOkenSunPump(sunPadLaunchpadContract, tokenAddress, balanceToken);
+                    } else {
+                        console.log('Sell operation cancelled.');
+                    }
                 }else{
                     const addressesBase58 = [
                         tokenAddress, // Token to Sell
@@ -186,7 +201,12 @@ const aproveToken = async (tokenContract, contracAddress,address) => {
                     const balanceToken = await getBalance(tokenContract, address);
                     console.log(`Balance Token: ${Number(balanceToken)/10**16}`);
 
-                    await sellTokeninSundotIO(routerSunPumpContract, balanceToken, path, address);
+                    const confirmation = rl.question('Are you sure you want to sell all your tokens? (Y/N): ');
+                    if (confirmation.toLowerCase() === 'y') {
+                        await sellTokeninSundotIO(routerSunPumpContract, balanceToken, path, address);
+                    } else {
+                        console.log('Sell operation cancelled.');
+                    }
                 }
             }
         } catch (error) {
