@@ -40,21 +40,80 @@ const getTRXAmountBySale = async (sunPadLaunchpadContract, tokenAddress,balanceT
     return minTrxAmountBySale;
 }
 
+const getAmountsOutSundotIO = async (sunPumpRouterContract, amountInSun, path) => {
+
+    const amountsOut = await sunPumpRouterContract.methods.getAmountsOut(amountInSun, path).call();
+    return amountsOut;
+}
+
 const buyTokenInSunPump = async (sunPadLaunchpadContract, tokenAddress, trxAmount) => {
     const minAmountToBuy = await getMinTokenTokenToBuy(sunPadLaunchpadContract, tokenAddress, trxAmount);
 
     const tx = await sunPadLaunchpadContract.purchaseToken(tokenAddress,minAmountToBuy).send({
         callValue: trxAmount,
+        feeLimit: 100000000,
     });
 
     console.log('Transaction:', `https://tronscan.org/#/transaction/${tx}`);
 }
 
-const saleToken = async (sunPadLaunchpadContract, tokenAddress, balanceToken) => {
+const SellTOkenSunPump = async (sunPadLaunchpadContract, tokenAddress, balanceToken) => {
     const minTrxAmountBySale = await getTRXAmountBySale(sunPadLaunchpadContract, tokenAddress, balanceToken);
 
-    const tx = await sunPadLaunchpadContract.saleToken(tokenAddress, balanceToken, minTrxAmountBySale).send();
+    const tx = await sunPadLaunchpadContract.saleToken(tokenAddress, balanceToken, minTrxAmountBySale).send({
+        feeLimit: 100000000,
+    });
     console.log('Transaction:', `https://tronscan.org/#/transaction/${tx}`);
+}
+
+const buyTokeninSundotIO = async (sunPumpRouterContract, trxamount, path,to_address) => {
+    const amountsOut = await getAmountsOutSundotIO(sunPumpRouterContract, trxamount, path);
+    
+    const tx = await sunPumpRouterContract.swapExactETHForTokens(
+        amountsOut.amounts[1],
+        path,
+        to_address,
+        Math.floor(Date.now() / 1000) + 60 * 10
+    ).send({
+        callValue: trxamount,
+        feeLimit: 100000000,
+    })
+
+    console.log('Transaction:', `https://tronscan.org/#/transaction/${tx}`)
+}
+
+const sellTokeninSundotIO = async (sunPumpRouterContract, tokenAmount, path, to_address) => {
+    const amountsOut = await getAmountsOutSundotIO(sunPumpRouterContract, tokenAmount, path);
+    
+    const tx = await sunPumpRouterContract.swapExactTokensForETH(
+        tokenAmount,
+        amountsOut.amounts[1],
+        path,
+        to_address,
+        Math.floor(Date.now() / 1000) + 60 * 10
+    ).send({
+        feeLimit: 100000000,
+    })
+
+    console.log('Transaction:', `https://tronscan.org/#/transaction/${tx}`)
+}
+
+const aproveToken = async (tokenContract, contracAddress,address) => {
+    const check = await tokenContract.allowance(address, contracAddress).call();
+    if(Number(check) > 0){
+        return;
+    }else{
+        const maxUint256 = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        const approveFunction = tokenContract.approve(
+            contracAddress,
+            maxUint256,
+        );
+    
+      const transaction = await approveFunction.send({
+        feeLimit: 100000000,
+      });
+      console.log("Approve success: ", `https://tronscan.org/#/transaction/${transaction}`);
+    }
 }
 
 (async()=>{
@@ -84,9 +143,23 @@ const saleToken = async (sunPadLaunchpadContract, tokenAddress, balanceToken) =>
 
                 const isBonding = await checkBonding(routerSunPumpContract, tokenAddress);
                 if(!isBonding){
-                    await buyTokenInSunPump(sunPadLaunchpadContract, tokenAddress, (trxAmount*10**6));
+                    const tokenContract = await tronWeb.contract(tokenContractABI, tokenAddress);
+                    await buyTokenInSunPump(sunPadLaunchpadContract, tokenAddress, tronWeb.toSun(trxAmount));
+                    await aproveToken(tokenContract, sunPadLaunchpadCa, address);
                 }else{
-                    console.log('Token already bonding');
+                    const addressesBase58 = [
+                        "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR", //WTRX
+                        tokenAddress // Token to buy
+                    ];
+                    
+                    const path = addressesBase58.map(address => {
+                        const hexAddress = tronWeb.address.toHex(address);
+                        return '0x' + hexAddress.slice(2); 
+                    });
+
+                    await buyTokeninSundotIO(routerSunPumpContract, tronWeb.toSun(trxAmount), path, address);
+                    const tokenContract = await tronWeb.contract(tokenContractABI, tokenAddress);
+                    await aproveToken(tokenContract, sunPumpRouterCa, address);
                 }
             }else if(choice == 2){
                 const tokenAddress = rl.question('Token Address: ');
@@ -97,9 +170,23 @@ const saleToken = async (sunPadLaunchpadContract, tokenAddress, balanceToken) =>
                     const balanceToken = await getBalance(tokenContract, address);
                     console.log(`Balance Token: ${Number(balanceToken)/10**16}`);
                     
-                    await saleToken(sunPadLaunchpadContract, tokenAddress, balanceToken);
+                    await SellTOkenSunPump(sunPadLaunchpadContract, tokenAddress, balanceToken);
                 }else{
+                    const addressesBase58 = [
+                        tokenAddress, // Token to Sell
+                        "TNUC9Qb1rRpS5CbWLmNMxXBjyFoydXjWFR", //WTRX
+                    ];
+                    
+                    const path = addressesBase58.map(address => {
+                        const hexAddress = tronWeb.address.toHex(address);
+                        return '0x' + hexAddress.slice(2); 
+                    });
 
+                    const tokenContract = await tronWeb.contract(tokenContractABI, tokenAddress);
+                    const balanceToken = await getBalance(tokenContract, address);
+                    console.log(`Balance Token: ${Number(balanceToken)/10**16}`);
+
+                    await sellTokeninSundotIO(routerSunPumpContract, balanceToken, path, address);
                 }
             }
         } catch (error) {
