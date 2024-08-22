@@ -1,6 +1,6 @@
 # tronswap-cli
 
-| simple swap token in tron using cli
+| example swap token in tron using cli
 
 ## Feature
 - Buy Sell token in sunpump.meme
