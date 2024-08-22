@@ -104,8 +104,8 @@ const main = async () => {
             const address = tronWeb.address.fromPrivateKey(process.env.PRIVATE_KEY);
             const balanceInSun = await tronWeb.trx.getBalance(address);
 
-            const sunPumpRouterContract = await loadContract(tronWeb, 'abiSunPumpRouter.json', CONFIG.SUN_PUMP_ROUTER_ADDRESS);
-            const sunPadLaunchpadContract = await loadContract(tronWeb, 'abiSunpad.json', CONFIG.SUN_PAD_LAUNCHPAD_ADDRESS);
+            const sunPumpRouterContract = await loadContract(tronWeb, './abi/abiSunPumpRouter.json', CONFIG.SUN_PUMP_ROUTER_ADDRESS);
+            const sunPadLaunchpadContract = await loadContract(tronWeb, './abi/abiSunpad.json', CONFIG.SUN_PAD_LAUNCHPAD_ADDRESS);
 
             console.log(`Address: ${address}\nBalance: ${Number(balanceInSun)/10**6} TRX\n`);
             console.log('1. Swap TRX to Token\n2. Sale Token to TRX');
@@ -122,7 +122,7 @@ const main = async () => {
                     const transaction = await buyToken(contract, tokenAddress, tronWeb.toSun(trxAmount), isSunPump);
                     await executeTransaction(transaction, tronWeb.toSun(trxAmount));
 
-                    const tokenContract = await loadContract(tronWeb, 'abitoken.json', tokenAddress);
+                    const tokenContract = await loadContract(tronWeb, './abi/abitoken.json', tokenAddress);
                     await approveToken(tokenContract, isSunPump ? CONFIG.SUN_PAD_LAUNCHPAD_ADDRESS : CONFIG.SUN_PUMP_ROUTER_ADDRESS, address);
                 } else {
                     console.log('Buy operation cancelled.');
@@ -132,7 +132,7 @@ const main = async () => {
                 const isSunPump = !await checkBonding(sunPumpRouterContract, tokenAddress);
                 const contract = isSunPump ? sunPadLaunchpadContract : sunPumpRouterContract;
 
-                const tokenContract = await loadContract(tronWeb, 'abitoken.json', tokenAddress);
+                const tokenContract = await loadContract(tronWeb, './abi/abitoken.json', tokenAddress);
                 const balanceToken = await getBalance(tokenContract, address);
                 console.log(`Balance Token: ${Number(balanceToken)/10**16}`);
 
