@@ -97,6 +97,16 @@ const sellToken = async (contract, tokenAddress, tokenAmount, isSunPump) => {
     }
 };
 
+const getEstimatedTRXForSell = async (contract, tokenAddress, tokenAmount, isSunPump) => {
+    if (isSunPump) {
+        return await getTRXAmountBySale(contract, tokenAddress, tokenAmount);
+    } else {
+        const path = [tokenAddress, CONFIG.WTRX_ADDRESS].map(addr => '0x' + TronWeb.address.toHex(addr).slice(2));
+        const amountsOut = await getAmountsOutSundotIO(contract, tokenAmount, path);
+        return amountsOut.amounts[1].toString();
+    }
+};
+
 const main = async () => {
     while (true) {
         try {
@@ -136,6 +146,9 @@ const main = async () => {
                 const balanceToken = await getBalance(tokenContract, address);
                 console.log(`Balance Token: ${Number(balanceToken)/10**16}`);
 
+                const estimatedTRX = await getEstimatedTRXForSell(contract, tokenAddress, balanceToken, isSunPump);
+                console.log(`Estimated TRX to receive: ${tronWeb.fromSun(estimatedTRX)} TRX`);
+                
                 if (rl.keyInYN('Are you sure you want to sell all your tokens?')) {
                     const transaction = await sellToken(contract, tokenAddress, balanceToken, isSunPump);
                     await executeTransaction(transaction);
