@@ -6,10 +6,6 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const POSITIONS_FILE = "./positions.json";
-const { HttpProvider } = TronWeb.providers;
-const TRON_FULL_NODE = new HttpProvider("https://api.trongrid.io");
-const TRON_SOLIDITY_NODE = new HttpProvider("https://api.trongrid.io");
-const TRON_EVENT_SERVER = new HttpProvider("https://api.trongrid.io");
 
 const CONFIG = {
     SUN_PUMP_ROUTER_ADDRESS: 'TZFs5ch1R1C4mmjwrrmZqeqbUgGpxY1yWB',
@@ -85,7 +81,7 @@ const getTRXAmountBySale = async (sunPadLaunchpadContract, tokenAddress, balance
 };
 
 const getAmountsOutSundotIO = async (sunPumpRouterContract, amountInSun, path) => {
-    return await sunPumpRouterContract.methods.getAmountsOut(amountInSun, path).call();
+    return await sunPumpRouterContract.getAmountsOut(amountInSun, path).call();
 };
 
 const executeTransaction = async (transaction, callValue = 0) => {
@@ -156,7 +152,7 @@ const getEstimatedTRXForSell = async (contract, tokenAddress, tokenAmount, isSun
 
 const calculatePnL = (entryTrxAmount, currentTrxAmount) => {
     const pnl = (currentTrxAmount - entryTrxAmount).toFixed(2);
-    const pnlPercentage = ((pnl / currentTrxAmount) * 100).toFixed(0);
+    const pnlPercentage = ((pnl / entryTrxAmount) * 100).toFixed(2);
     return { pnl, pnlPercentage };
 };
 
@@ -172,13 +168,11 @@ const getAllPositionsWithPnL = async (tronWeb, sunPumpRouterContract, sunPadLaun
         for (const [tokenAddress, position] of Object.entries(positions)) {
             const isSunPump = !await checkBonding(sunPumpRouterContract, tokenAddress);
             const contract = isSunPump ? sunPadLaunchpadContract : sunPumpRouterContract;
-            
             const tokenContract = await loadContract(tronWeb, './abi/abitoken.json', tokenAddress);
             const currentBalance = await getBalance(tokenContract, tronWeb.address.fromPrivateKey(process.env.PRIVATE_KEY));
             const symbol = await tokenContract.symbol().call();
             const name_token = await tokenContract.name().call();
             const estimatedTRX = await getEstimatedTRXForSell(contract, tokenAddress, currentBalance, isSunPump);
-            
             const { pnl, pnlPercentage } = calculatePnL(
                 position.trxEntryAmount,
                 Number(tronWeb.fromSun(estimatedTRX))
@@ -206,7 +200,12 @@ const getAllPositionsWithPnL = async (tronWeb, sunPumpRouterContract, sunPadLaun
 const main = async () => {
     while (true) {
         try {
-            const tronWeb = new TronWeb(TRON_FULL_NODE, TRON_SOLIDITY_NODE, TRON_EVENT_SERVER, process.env.PRIVATE_KEY);
+            const tronWeb = new TronWeb({
+                fullHost: 'https://api.trongrid.io',
+                headers: process.env.TRONGID_KEY ? { 'TRON-PRO-API-KEY': process.env.TRONGID_KEY } : {},
+                privateKey: process.env.PRIVATE_KEY
+            });
+            
             const address = tronWeb.address.fromPrivateKey(process.env.PRIVATE_KEY);
             const balanceInSun = await tronWeb.trx.getBalance(address);
 
